@@ -121,6 +121,3 @@ def run_q():
     plt.xlabel('Value')
     plt.legend()
     plt.show()
-
-
-run_q()
