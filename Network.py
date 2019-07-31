@@ -88,16 +88,19 @@ class Network:
 
         grad_w_loss = self.grad_last_layer(X_layer_out[:, :, self._num_layers], W_loss, b_loss)
         grad_theta[loss_weights_idx: loss_weights_end_loc] = grad_w_loss
-        grad_x_loss = self.grad_x_loss(X_layer_out[:,:, self._num_layers], W_loss, b_loss)
+        grad_x_loss = sm.grad_x(X_layer_out[:,:, self._num_layers], W_loss, b_loss, self.C)
 
         for k in range(self._num_layers - 1, -1, -1):
             W, b = self.get_layer_weights(k, self._sample_size)
             grad_x_loss = W * grad_x_loss
 
-            g_w_layer = ResNN_jac_theta_t_mul(X_layer_out[:,:, k], W, b, grad_x_loss)
-            grad_theta((k - 1) * theta_layer_size + 1: k * theta_layer_size) = g_w_layer;
+            curr_x = X_layer_out[:,:, k]
+            grad_w_layer = sm.grad_theta(curr_x, W, b, self.C)
 
-            G_x = ResNN_jac_x_t_mul(Xis(:,:, k), W1, W2, b, G_x);
+            vl = grad_x_loss * grad_w_layer
+            der_ce_b = np.mean(vl, axis=1)
+            der_ce_w = vl * np.transpose(curr_x)
+            grad_theta[(k - 1) * self._theta_layer_size : k * self._theta_layer_size] = np.hstack((der_ce_b, der_ce_w.flatten()))
 
         return grad_theta
 
